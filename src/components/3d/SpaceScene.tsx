@@ -106,9 +106,9 @@ export const SpaceScene: React.FC<SpaceSceneProps> = ({
     const earthMesh = new THREE.Mesh(earthGeometry, earthMaterial);
     scene.add(earthMesh);
 
-    // 8. Atmosphere Rayleigh Shader Mesh (Backside halo)
-    const atmosphereGeom = new THREE.SphereGeometry(earthRadius * 1.15, 64, 64);
-    const atmosphereMat = createAtmosphereMaterial();
+    // 8. Atmosphere Rayleigh Shader Mesh (Soft diffused rim halo)
+    const atmosphereGeom = new THREE.SphereGeometry(earthRadius * 1.025, 64, 64);
+    const atmosphereMat = createAtmosphereMaterial(sunPosVec.clone().normalize());
     const atmosphereMesh = new THREE.Mesh(atmosphereGeom, atmosphereMat);
     scene.add(atmosphereMesh);
     atmosphereMeshRef.current = atmosphereMesh;
