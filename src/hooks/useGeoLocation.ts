@@ -2,15 +2,36 @@ import { useState, useEffect } from 'react';
 import type { UserCoordinates } from '../types';
 
 export function useGeoLocation() {
-  const [coords, setCoords] = useState<UserCoordinates | null>(null);
+  // Default fallback: Córdoba, Argentina
+  const [coords, setCoords] = useState<UserCoordinates>({
+    latitude: -31.4201,
+    longitude: -64.1888,
+  });
   const [hasPermission, setHasPermission] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
 
+  const fetchIpLocation = async () => {
+    try {
+      const res = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(3000) });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.latitude && data.longitude) {
+          setCoords({
+            latitude: Number(data.latitude),
+            longitude: Number(data.longitude),
+          });
+        }
+      }
+    } catch {
+      // Keep default Córdoba coordinates
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const requestPosition = () => {
     if (!navigator.geolocation) {
-      // Fallback coordinates (e.g. Madrid / New York default)
-      setCoords({ latitude: 40.4168, longitude: -3.7038 });
-      setLoading(false);
+      fetchIpLocation();
       return;
     }
 
@@ -24,13 +45,10 @@ export function useGeoLocation() {
         setLoading(false);
       },
       (err) => {
-        console.warn('Geolocation access denied or unavailable, using default coordinates:', err);
-        // Fallback default coordinates
-        setCoords({ latitude: 40.7128, longitude: -74.006 });
-        setHasPermission(false);
-        setLoading(false);
+        console.warn('Browser GPS permission not granted, resolving via IP:', err.message);
+        fetchIpLocation();
       },
-      { enableHighAccuracy: true, timeout: 6000 }
+      { enableHighAccuracy: true, timeout: 5000 }
     );
   };
 
