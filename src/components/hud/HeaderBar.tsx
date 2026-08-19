@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Radio, Bell, Users, Globe, Maximize, Minimize } from 'lucide-react';
+import { Radio, Bell, Users, Globe, Maximize, Minimize, HelpCircle } from 'lucide-react';
 import { useTranslations, type Language } from '../../hooks/useTranslations';
 
 interface HeaderBarProps {
@@ -7,6 +7,7 @@ interface HeaderBarProps {
   onToggleLang: () => void;
   onOpenCrew: () => void;
   onOpenPasses: () => void;
+  onOpenGuide: () => void;
   crewCount: number;
 }
 
@@ -15,6 +16,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
   onToggleLang,
   onOpenCrew,
   onOpenPasses,
+  onOpenGuide,
   crewCount,
 }) => {
   const t = useTranslations(lang);
@@ -147,6 +149,27 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
           pointerEvents: 'auto',
         }}
       >
+        {/* Mission Guide Button */}
+        <button
+          onClick={onOpenGuide}
+          className="glass-panel glass-panel-interactive"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '7px 14px',
+            borderRadius: '9999px',
+            color: '#f8fafc',
+            fontSize: '12px',
+            fontWeight: 500,
+            cursor: 'pointer',
+            border: '1px solid rgba(56, 189, 248, 0.25)',
+          }}
+        >
+          <HelpCircle size={13} color="#38bdf8" />
+          <span>{t.missionGuide}</span>
+        </button>
+
         {/* Next Passes Button */}
         <button
           onClick={onOpenPasses}

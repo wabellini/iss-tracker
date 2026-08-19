@@ -75,12 +75,22 @@ export const translations = {
     noPassesFound: 'No hay pases visibles en las próximas 48 horas para tu ubicación.',
     permissionDenied: 'Activa la geolocalización para calcular pases exactos sobre tu ciudad.',
     requestLocation: 'Activar Ubicación',
+    
+    // Mission Guide Modal
+    missionGuide: 'Guía de Misión',
+    guideTitle: 'Manual del Centro de Control',
+    guideSubtitle: 'Conceptos orbitales, telemetría y navegación de la Estación Espacial Internacional',
+    tabMinimap: 'Minimapa 2D',
+    tabSolarCycle: 'Día, Noche y Sol',
+    tabTelemetry: 'Telemetría',
+    tabCameras: 'Cámaras y 3D',
   },
   en: {
     appTitle: 'ISS TRACKER 3D',
     liveBadge: 'LIVE',
     nextPasses: 'Upcoming Passes',
     crewOnboard: 'Crew Onboard',
+    missionGuide: 'Mission Guide',
     fullscreen: 'Fullscreen',
     exitFullscreen: 'Exit Fullscreen',
     
@@ -150,6 +160,14 @@ export const translations = {
     noPassesFound: 'No visible passes in the next 48 hours for your location.',
     permissionDenied: 'Enable geolocation to calculate precise sightings over your city.',
     requestLocation: 'Enable Geolocation',
+
+    // Mission Guide Modal
+    guideTitle: 'Mission Control Manual',
+    guideSubtitle: 'Orbital mechanics, telemetry, and 3D navigation for the International Space Station',
+    tabMinimap: '2D Minimap',
+    tabSolarCycle: 'Day, Night & Sun',
+    tabTelemetry: 'Telemetry',
+    tabCameras: 'Cameras & 3D',
   },
 };
 

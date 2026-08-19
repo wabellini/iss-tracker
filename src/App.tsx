@@ -6,6 +6,7 @@ import { TelemetryCards } from './components/hud/TelemetryCards';
 import { CameraToolbar } from './components/hud/CameraToolbar';
 import { CrewModal } from './components/hud/CrewModal';
 import { PassAlertsModal } from './components/hud/PassAlertsModal';
+import { MissionGuideModal } from './components/hud/MissionGuideModal';
 import { MobileSheet } from './components/hud/MobileSheet';
 import { useISSTelemetry } from './hooks/useISSTelemetry';
 import { useGeoLocation } from './hooks/useGeoLocation';
@@ -17,6 +18,7 @@ export const App: React.FC = () => {
   const [cameraMode, setCameraMode] = useState<CameraMode>('free');
   const [isCrewOpen, setIsCrewOpen] = useState(false);
   const [isPassesOpen, setIsPassesOpen] = useState(false);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
 
   const [layers, setLayers] = useState<LayerSettings>({
     atmosphere: true,
@@ -65,6 +67,7 @@ export const App: React.FC = () => {
         onToggleLang={toggleLanguage}
         onOpenCrew={() => setIsCrewOpen(true)}
         onOpenPasses={() => setIsPassesOpen(true)}
+        onOpenGuide={() => setIsGuideOpen(true)}
         crewCount={crewCount}
       />
 
@@ -87,6 +90,13 @@ export const App: React.FC = () => {
 
       {/* Mobile Touch Drawer Sheet */}
       <MobileSheet telemetry={telemetry} lang={lang} />
+
+      {/* Mission Guide Help Modal */}
+      <MissionGuideModal
+        isOpen={isGuideOpen}
+        onClose={() => setIsGuideOpen(false)}
+        lang={lang}
+      />
 
       {/* Astronauts Crew Modal */}
       <CrewModal
