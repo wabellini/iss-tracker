@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Eye, EyeOff, Maximize2, Minimize2 } from 'lucide-react';
 import type { TelemetryData, UserCoordinates } from '../../types';
-import { calculateSolarTerminator, ISS_INCLINATION_DEG } from '../../services/orbitalMath';
+import { calculateSolarTerminator, calculateGroundTrack } from '../../services/orbitalMath';
 import { WORLD_CONTINENTS } from './worldMapData';
 
 interface MiniMap2DProps {
@@ -37,19 +37,18 @@ export const MiniMap2D: React.FC<MiniMap2DProps> = ({
     canvas.height = height * dpr;
     ctx.scale(dpr, dpr);
 
-    // Helpers to convert lat/lon to canvas coordinates
+    // Coordinate conversion
     const toX = (lon: number) => ((lon + 180) / 360) * width;
     const toY = (lat: number) => ((90 - lat) / 180) * height;
 
-    // 1. Draw Ocean Background
-    ctx.fillStyle = '#051124';
+    // 1. Deep Oceanic Background
+    ctx.fillStyle = '#040d1e';
     ctx.fillRect(0, 0, width, height);
 
-    // 2. Draw Subtle Coordinate Grid Lines
+    // 2. Subtle Coordinate Grid Lines
     ctx.strokeStyle = 'rgba(56, 189, 248, 0.08)';
     ctx.lineWidth = 1;
 
-    // Meridians
     for (let lon = -180; lon <= 180; lon += 60) {
       const x = toX(lon);
       ctx.beginPath();
@@ -57,7 +56,6 @@ export const MiniMap2D: React.FC<MiniMap2DProps> = ({
       ctx.lineTo(x, height);
       ctx.stroke();
     }
-    // Parallels
     for (let lat = -60; lat <= 60; lat += 30) {
       const y = toY(lat);
       ctx.beginPath();
@@ -67,8 +65,8 @@ export const MiniMap2D: React.FC<MiniMap2DProps> = ({
     }
 
     // 3. Draw Continents
-    ctx.fillStyle = 'rgba(18, 40, 70, 0.65)';
-    ctx.strokeStyle = 'rgba(56, 189, 248, 0.28)';
+    ctx.fillStyle = 'rgba(16, 36, 64, 0.7)';
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.32)';
     ctx.lineWidth = 1;
 
     for (const continent of WORLD_CONTINENTS) {
@@ -90,7 +88,7 @@ export const MiniMap2D: React.FC<MiniMap2DProps> = ({
     // 4. Draw Solar Terminator (Day/Night Shadow)
     const terminatorPoints = calculateSolarTerminator(new Date(), 120);
     ctx.beginPath();
-    ctx.moveTo(0, height); // start bottom-left
+    ctx.moveTo(0, height);
 
     terminatorPoints.forEach(([lat, lon], idx) => {
       const x = toX(lon);
@@ -104,31 +102,40 @@ export const MiniMap2D: React.FC<MiniMap2DProps> = ({
 
     ctx.lineTo(width, height);
     ctx.closePath();
-    ctx.fillStyle = 'rgba(2, 6, 23, 0.45)';
+    ctx.fillStyle = 'rgba(2, 6, 20, 0.48)';
     ctx.fill();
 
-    // 5. Draw Orbit Ground Tracks
-    const currentPhase = Math.asin(Math.max(-0.999, Math.min(0.999, telemetry.latitude / ISS_INCLINATION_DEG)));
+    // Helper to draw segmented tracks with map wrapping
+    const drawTrack = (
+      points: Array<{ lat: number; lon: number }>,
+      strokeColor: string,
+      lineWidth: number,
+      dashed: boolean = false,
+      glow: boolean = false
+    ) => {
+      if (points.length === 0) return;
 
-    // Previous and Next Orbits (Orange dashed curves)
-    const drawDashedOrbit = (orbitShiftDeg: number, strokeColor: string) => {
+      ctx.save();
       ctx.strokeStyle = strokeColor;
-      ctx.lineWidth = 1.2;
-      ctx.setLineDash([4, 4]);
-      ctx.beginPath();
+      ctx.lineWidth = lineWidth;
+      if (dashed) {
+        ctx.setLineDash([4, 4]);
+      } else {
+        ctx.setLineDash([]);
+      }
+      if (glow) {
+        ctx.shadowColor = strokeColor;
+        ctx.shadowBlur = 6;
+      }
 
+      ctx.beginPath();
       let isDrawing = false;
       let lastX = 0;
 
-      for (let i = -180; i <= 180; i += 2) {
-        const angleRad = (i * Math.PI) / 180;
-        const lat = ISS_INCLINATION_DEG * Math.sin(currentPhase + angleRad);
-        const lon = ((telemetry.longitude + i + orbitShiftDeg + 180) % 360) - 180;
+      for (let i = 0; i < points.length; i++) {
+        const x = toX(points[i].lon);
+        const y = toY(points[i].lat);
 
-        const x = toX(lon);
-        const y = toY(lat);
-
-        // Handle canvas edge wrap-around
         if (!isDrawing || Math.abs(x - lastX) > width / 2) {
           ctx.moveTo(x, y);
           isDrawing = true;
@@ -138,41 +145,64 @@ export const MiniMap2D: React.FC<MiniMap2DProps> = ({
         lastX = x;
       }
       ctx.stroke();
-      ctx.setLineDash([]); // Reset dash
+      ctx.restore();
     };
 
-    // Orange past & future ground tracks
-    drawDashedOrbit(-23.17, 'rgba(249, 115, 22, 0.65)');
-    drawDashedOrbit(23.17, 'rgba(249, 115, 22, 0.65)');
+    // 5. ORBITAL TRACKS:
+    // A) Previous Orbit (-90 min): Orange dashed line
+    const prevOrbitTrack = calculateGroundTrack(telemetry.latitude, telemetry.longitude, telemetry.headingDeg, -135, -45);
+    drawTrack(prevOrbitTrack, 'rgba(249, 115, 22, 0.65)', 1.2, true);
 
-    // Current Orbit Ground Track (Solid Glowing Cyan Line)
-    ctx.strokeStyle = '#00e5ff';
-    ctx.lineWidth = 2.2;
-    ctx.shadowColor = '#00e5ff';
-    ctx.shadowBlur = 6;
-    ctx.beginPath();
+    // B) Next Future Orbit (+90 min): Orange dashed line
+    const nextOrbitTrack = calculateGroundTrack(telemetry.latitude, telemetry.longitude, telemetry.headingDeg, 90, 180);
+    drawTrack(nextOrbitTrack, 'rgba(249, 115, 22, 0.65)', 1.2, true);
 
-    let isDrawingCurrent = false;
-    let lastCurrentX = 0;
+    // C) Current Pass Track (-45m past and +90m upcoming): Glowing Solid Cyan Line
+    const currentTrack = calculateGroundTrack(telemetry.latitude, telemetry.longitude, telemetry.headingDeg, -45, 90);
+    drawTrack(currentTrack, '#00e5ff', 2.2, false, true);
 
-    for (let i = -180; i <= 180; i += 2) {
-      const angleRad = (i * Math.PI) / 180;
-      const lat = ISS_INCLINATION_DEG * Math.sin(currentPhase + angleRad);
-      const lon = ((telemetry.longitude + i + 180) % 360) - 180;
+    // D) Directional Arrows along the cyan flight path
+    const drawDirectionArrows = (
+      points: Array<{ lat: number; lon: number; minutesOffset: number }>,
+      targetMinutes: number[]
+    ) => {
+      targetMinutes.forEach((minOffset) => {
+        const idx = points.findIndex((p) => p.minutesOffset >= minOffset);
+        if (idx > 0 && idx < points.length - 1) {
+          const p1 = points[idx];
+          const p2 = points[idx + 1];
+          const x1 = toX(p1.lon);
+          const y1 = toY(p1.lat);
+          const x2 = toX(p2.lon);
+          const y2 = toY(p2.lat);
 
-      const x = toX(lon);
-      const y = toY(lat);
+          if (Math.abs(x2 - x1) < width / 3) {
+            const angle = Math.atan2(y2 - y1, x2 - x1);
+            const arrowSize = 5;
 
-      if (!isDrawingCurrent || Math.abs(x - lastCurrentX) > width / 2) {
-        ctx.moveTo(x, y);
-        isDrawingCurrent = true;
-      } else {
-        ctx.lineTo(x, y);
-      }
-      lastCurrentX = x;
-    }
-    ctx.stroke();
-    ctx.shadowBlur = 0; // Reset shadow
+            ctx.save();
+            ctx.translate(x1, y1);
+            ctx.rotate(angle);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowColor = '#00e5ff';
+            ctx.shadowBlur = 6;
+
+            ctx.beginPath();
+            ctx.moveTo(arrowSize, 0);
+            ctx.lineTo(-arrowSize * 0.7, -arrowSize * 0.6);
+            ctx.lineTo(-arrowSize * 0.3, 0);
+            ctx.lineTo(-arrowSize * 0.7, arrowSize * 0.6);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.restore();
+          }
+        }
+      });
+    };
+
+    drawDirectionArrows(currentTrack, [-20, 25, 65]);
 
     // 6. Draw User Location (Green Dot)
     if (userCoords) {
@@ -188,21 +218,21 @@ export const MiniMap2D: React.FC<MiniMap2DProps> = ({
       ctx.shadowBlur = 0;
     }
 
-    // 7. Draw ISS Position (Pulsating Cyan Marker)
+    // 7. Draw ISS Position (Pulsating Cyan Marker & Crosshair Ring)
     const issX = toX(telemetry.longitude);
     const issY = toY(telemetry.latitude);
 
-    // Outer Target Pulse Ring
-    ctx.strokeStyle = 'rgba(0, 229, 255, 0.7)';
+    // Outer Target Ring
+    ctx.strokeStyle = 'rgba(0, 229, 255, 0.85)';
     ctx.lineWidth = 1.5;
+    ctx.shadowColor = '#00e5ff';
+    ctx.shadowBlur = 8;
     ctx.beginPath();
     ctx.arc(issX, issY, 7.5, 0, Math.PI * 2);
     ctx.stroke();
 
-    // Center ISS Point
+    // Inner Solid Point
     ctx.fillStyle = '#00e5ff';
-    ctx.shadowColor = '#00e5ff';
-    ctx.shadowBlur = 10;
     ctx.beginPath();
     ctx.arc(issX, issY, 3, 0, Math.PI * 2);
     ctx.fill();

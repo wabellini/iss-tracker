@@ -7,20 +7,19 @@ export const ISS_PERIOD_MINUTES = 92.68;
 
 /**
  * Converts Geodetic Latitude and Longitude to 3D Cartesian coordinates (Three.js space)
- * Earth radius in 3D scene is typically 10 units.
+ * Matches standard Three.js equirectangular UV SphereGeometry orientation perfectly.
  */
 export function latLonToVector3(
   latDeg: number,
   lonDeg: number,
   radius: number = 10
 ): THREE.Vector3 {
-  const latRad = (latDeg * Math.PI) / 180;
-  const lonRad = (lonDeg * Math.PI) / 180;
+  const phi = (90 - latDeg) * (Math.PI / 180);
+  const theta = (lonDeg + 180) * (Math.PI / 180);
 
-  // Standard Three.js equirectangular UV sphere orientation
-  const x = -radius * Math.cos(latRad) * Math.cos(lonRad);
-  const y = radius * Math.sin(latRad);
-  const z = radius * Math.cos(latRad) * Math.sin(lonRad);
+  const x = -radius * Math.sin(phi) * Math.cos(theta);
+  const y = radius * Math.cos(phi);
+  const z = radius * Math.sin(phi) * Math.sin(theta);
 
   return new THREE.Vector3(x, y, z);
 }
@@ -32,12 +31,14 @@ export function vector3ToLatLon(vec: THREE.Vector3): { lat: number; lon: number 
   const radius = vec.length();
   if (radius === 0) return { lat: 0, lon: 0 };
 
-  const latRad = Math.asin(vec.y / radius);
-  const lonRad = Math.atan2(vec.z, -vec.x);
+  const latRad = Math.asin(Math.max(-1, Math.min(1, vec.y / radius)));
+  const theta = Math.atan2(vec.z, -vec.x);
+  let lonDeg = (theta * 180) / Math.PI - 180;
+  lonDeg = ((lonDeg + 180) % 360) - 180;
 
   return {
     lat: (latRad * 180) / Math.PI,
-    lon: (lonRad * 180) / Math.PI,
+    lon: lonDeg,
   };
 }
 
@@ -76,19 +77,18 @@ export function extrapolateISSPosition(
   elapsedSeconds: number,
   velocityKmH: number = 27575
 ): { lat: number; lon: number } {
-  // Speed in km/s (approx 7.66 km/s)
   const speedKmS = velocityKmH / 3600;
   const orbitCircumferenceKm = 2 * Math.PI * (EARTH_RADIUS_KM + 420);
   const degTravelled = (speedKmS * elapsedSeconds / orbitCircumferenceKm) * 360;
 
-  // Longitudinal progression (orbital motion + Earth's rotation)
-  const lonShift = degTravelled;
+  // Ground track progression rate (360 deg per 92.68 min minus Earth rotation)
+  const netLonRateDegPerSec = (360 / (ISS_PERIOD_MINUTES * 60)) - (360 / (86400));
+  const lonShift = netLonRateDegPerSec * elapsedSeconds;
   const newLon = ((lastLon + lonShift + 180) % 360) - 180;
 
   // Latitudinal sinusoidal oscillation based on inclination
   const inclinationRad = (ISS_INCLINATION_DEG * Math.PI) / 180;
-  // Calculate current orbital phase angle
-  const currentPhase = Math.asin(Math.min(1, Math.max(-1, lastLat / (ISS_INCLINATION_DEG))));
+  const currentPhase = Math.asin(Math.min(0.999, Math.max(-0.999, lastLat / ISS_INCLINATION_DEG)));
   const deltaPhase = (degTravelled * Math.PI) / 180;
   const newLat = (inclinationRad * 180 / Math.PI) * Math.sin(currentPhase + deltaPhase);
 
@@ -99,27 +99,24 @@ export function extrapolateISSPosition(
 }
 
 /**
- * Generates an array of 3D points forming the ISS orbital trajectory loop
+ * Generates an array of 3D points forming the ISS orbital trajectory loop in Three.js space
  */
 export function generateOrbitTrail(
   currentLat: number,
   currentLon: number,
-  orbitRadius3D: number = 10.65,
-  pointCount: number = 180
+  orbitRadius3D: number = 10.66,
+  pointCount: number = 240
 ): OrbitPoint[] {
   const points: OrbitPoint[] = [];
-
-  // Find approximate current orbit phase
   const currentPhase = Math.asin(Math.max(-0.999, Math.min(0.999, currentLat / ISS_INCLINATION_DEG)));
 
   for (let i = 0; i <= pointCount; i++) {
     const progress = i / pointCount;
-    // Cover 1.5 full orbits (past and future)
-    const angleOffset = (progress - 0.3) * 2 * Math.PI * 1.5;
+    // Cover past 45m and future 90m (1.5 orbits)
+    const angleOffset = (progress - 0.33) * 2 * Math.PI * 1.5;
     const phase = currentPhase + angleOffset;
 
     const lat = ISS_INCLINATION_DEG * Math.sin(phase);
-    // Earth rotation adjustment (-23.17 deg per orbit)
     const earthRotationOffset = (angleOffset / (2 * Math.PI)) * 23.17;
     const lon = ((currentLon + (angleOffset * 180 / Math.PI) - earthRotationOffset + 180) % 360) - 180;
 
@@ -135,6 +132,45 @@ export function generateOrbitTrail(
   }
 
   return points;
+}
+
+/**
+ * Calculates ground track coordinates for past minutes (e.g. -45m) and future minutes (e.g. +90m)
+ */
+export function calculateGroundTrack(
+  currentLat: number,
+  currentLon: number,
+  headingDeg: number,
+  startMinutes: number = -45,
+  endMinutes: number = 90,
+  stepMinutes: number = 0.5
+): Array<{ lat: number; lon: number; minutesOffset: number }> {
+  const track: Array<{ lat: number; lon: number; minutesOffset: number }> = [];
+
+  // Determine initial phase from current latitude and heading
+  const isDescending = headingDeg > 90 && headingDeg < 270;
+  const clampedLatRatio = Math.max(-0.999, Math.min(0.999, currentLat / ISS_INCLINATION_DEG));
+  let basePhase = Math.asin(clampedLatRatio);
+  if (isDescending) {
+    basePhase = Math.PI - basePhase;
+  }
+
+  const omegaOrbital = (2 * Math.PI) / ISS_PERIOD_MINUTES; // rad per minute
+  const degLonPerMinute = (360 / ISS_PERIOD_MINUTES) - (360 / 1440); // deg per minute (~3.634 deg/min)
+
+  for (let t = startMinutes; t <= endMinutes; t += stepMinutes) {
+    const phase = basePhase + omegaOrbital * t;
+    const lat = ISS_INCLINATION_DEG * Math.sin(phase);
+    const lon = ((currentLon + degLonPerMinute * t + 180) % 360) - 180;
+
+    track.push({
+      lat,
+      lon,
+      minutesOffset: t,
+    });
+  }
+
+  return track;
 }
 
 /**
@@ -195,7 +231,6 @@ export function isPositionSunlit(lat: number, lon: number, date: Date = new Date
   const p1 = latLonToVector3(lat, lon, 1);
   const pSun = latLonToVector3(sun.lat, sun.lon, 1);
 
-  // Dot product between ISS normal and Sun direction (> -0.1 allows for orbital altitude horizon)
   const dot = p1.dot(pSun);
   return dot > -0.12;
 }

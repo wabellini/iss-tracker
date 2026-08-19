@@ -54,37 +54,34 @@ export function createPhotometricEarthMaterial(
         float sunDot = dot(normal, sunDir);
 
         // Day factor with smooth physical twilight gradient
-        float dayFactor = smoothstep(-0.12, 0.15, sunDot);
+        float dayFactor = smoothstep(-0.14, 0.18, sunDot);
 
-        // 1. DAYTIME LIGHTING
+        // 1. DAYTIME VIBRANT LIGHTING
         // Specular Sun reflection hotspot on water
         vec3 viewDir = normalize(vViewPosition);
         vec3 halfDir = normalize(sunDir + viewDir);
         float specAngle = max(dot(normalize(vNormal), halfDir), 0.0);
-        float specular = pow(specAngle, 50.0) * specularMask * 1.7 * dayFactor;
-        vec3 sunSpecularColor = vec3(1.0, 0.96, 0.88) * specular;
+        float specular = pow(specAngle, 36.0) * specularMask * 2.2 * dayFactor;
+        vec3 sunSpecularColor = vec3(1.0, 0.98, 0.92) * specular;
 
-        // Enhanced continent contrast and daytime radiance
-        float sunIntensity = max(sunDot, 0.0) * 1.15 + 0.06;
+        // Bright, clear daytime radiance
+        float sunIntensity = max(sunDot, 0.0) * 1.35 + 0.32;
         vec3 litDay = dayColor * sunIntensity + sunSpecularColor;
 
         // 2. SUBTLE TWILIGHT SUNSET/SUNRISE TRANSITION LINE (TERMINATOR)
-        // Golden-amber glow along the terminator line
-        float twilightBand = smoothstep(-0.15, 0.02, sunDot) * smoothstep(0.18, 0.02, sunDot);
-        vec3 twilightGlow = vec3(0.98, 0.52, 0.16) * twilightBand * 0.48;
+        float twilightBand = smoothstep(-0.16, 0.02, sunDot) * smoothstep(0.20, 0.02, sunDot);
+        vec3 twilightGlow = vec3(1.0, 0.54, 0.18) * twilightBand * 0.48;
 
-        // 3. NIGHTTIME WITH VISIBLE CONTINENTS & CITY LIGHTS
-        // Distinct ambient illumination for dark side:
-        // Continents (1.0 - specularMask) reflect faint starlight/earthshine (deep blue-grey)
-        // Oceans (specularMask) stay deep dark navy for clear coastline contrast
-        vec3 nightLandAmbient = dayColor * vec3(0.08, 0.11, 0.17) * 1.4;
-        vec3 nightOceanAmbient = vec3(0.012, 0.022, 0.045);
-        vec3 nightTerrainAmbient = mix(nightLandAmbient, nightOceanAmbient, specularMask);
+        // 3. NIGHTTIME WITH DISTINCT CONTINENTS & CITY LIGHTS
+        // Continents on dark side receive soft blue-grey ambient starlight
+        vec3 nightLandAmbient = dayColor * vec3(0.18, 0.22, 0.32) * 1.6;
+        vec3 nightOceanAmbient = vec3(0.02, 0.038, 0.07);
+        vec3 nightTerrain = mix(nightLandAmbient, nightOceanAmbient, specularMask);
 
-        // Golden glowing city lights on the dark hemisphere
-        vec3 nightCities = nightLights * vec3(1.2, 1.05, 0.85) * 2.8;
+        // Vibrant golden city lights on landmasses
+        vec3 nightCities = nightLights * vec3(1.3, 1.15, 0.9) * 3.0;
 
-        vec3 litNight = nightTerrainAmbient + nightCities;
+        vec3 litNight = nightTerrain + nightCities;
 
         // 4. FINAL COLOR COMPOSITION
         vec3 finalSurface = mix(litNight, litDay, dayFactor) + twilightGlow;
