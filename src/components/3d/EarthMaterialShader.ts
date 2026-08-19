@@ -12,6 +12,8 @@ export function createPhotometricEarthMaterial(
       uSpecularTexture: { value: textures.specular },
       uNormalTexture: { value: textures.normal },
       uSunDirection: { value: sunDirection },
+      uShowCityLights: { value: 1.0 },
+      uShowTerminator: { value: 1.0 },
     },
     vertexShader: `
       varying vec2 vUv;
@@ -36,6 +38,8 @@ export function createPhotometricEarthMaterial(
       uniform sampler2D uSpecularTexture;
       uniform sampler2D uNormalTexture;
       uniform vec3 uSunDirection;
+      uniform float uShowCityLights;
+      uniform float uShowTerminator;
 
       varying vec2 vUv;
       varying vec3 vNormal;
@@ -57,29 +61,26 @@ export function createPhotometricEarthMaterial(
         float dayFactor = smoothstep(-0.14, 0.18, sunDot);
 
         // 1. DAYTIME VIBRANT LIGHTING
-        // Specular Sun reflection hotspot on water
         vec3 viewDir = normalize(vViewPosition);
         vec3 halfDir = normalize(sunDir + viewDir);
         float specAngle = max(dot(normalize(vNormal), halfDir), 0.0);
         float specular = pow(specAngle, 36.0) * specularMask * 2.2 * dayFactor;
         vec3 sunSpecularColor = vec3(1.0, 0.98, 0.92) * specular;
 
-        // Bright, clear daytime radiance
         float sunIntensity = max(sunDot, 0.0) * 1.35 + 0.32;
         vec3 litDay = dayColor * sunIntensity + sunSpecularColor;
 
         // 2. SUBTLE TWILIGHT SUNSET/SUNRISE TRANSITION LINE (TERMINATOR)
         float twilightBand = smoothstep(-0.16, 0.02, sunDot) * smoothstep(0.20, 0.02, sunDot);
-        vec3 twilightGlow = vec3(1.0, 0.54, 0.18) * twilightBand * 0.48;
+        vec3 twilightGlow = vec3(1.0, 0.54, 0.18) * twilightBand * 0.48 * uShowTerminator;
 
         // 3. NIGHTTIME WITH DISTINCT CONTINENTS & CITY LIGHTS
-        // Continents on dark side receive soft blue-grey ambient starlight
         vec3 nightLandAmbient = dayColor * vec3(0.18, 0.22, 0.32) * 1.6;
         vec3 nightOceanAmbient = vec3(0.02, 0.038, 0.07);
         vec3 nightTerrain = mix(nightLandAmbient, nightOceanAmbient, specularMask);
 
-        // Vibrant golden city lights on landmasses
-        vec3 nightCities = nightLights * vec3(1.3, 1.15, 0.9) * 3.0;
+        // Vibrant golden city lights on landmasses (controlled by uShowCityLights)
+        vec3 nightCities = nightLights * vec3(1.3, 1.15, 0.9) * 3.0 * uShowCityLights;
 
         vec3 litNight = nightTerrain + nightCities;
 

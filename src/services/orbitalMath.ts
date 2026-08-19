@@ -70,27 +70,35 @@ export function calculateDistanceKm(
 
 /**
  * Extrapolates ISS position smoothly at 60 FPS (dead-reckoning) between API polling intervals
+ * Aware of heading (ascending vs descending node) to guarantee perfect 3D trajectory alignment
  */
 export function extrapolateISSPosition(
   lastLat: number,
   lastLon: number,
   elapsedSeconds: number,
-  velocityKmH: number = 27575
+  velocityKmH: number = 27575,
+  headingDeg: number = 51.6
 ): { lat: number; lon: number } {
   const speedKmS = velocityKmH / 3600;
   const orbitCircumferenceKm = 2 * Math.PI * (EARTH_RADIUS_KM + 420);
   const degTravelled = (speedKmS * elapsedSeconds / orbitCircumferenceKm) * 360;
 
-  // Ground track progression rate (360 deg per 92.68 min minus Earth rotation)
-  const netLonRateDegPerSec = (360 / (ISS_PERIOD_MINUTES * 60)) - (360 / (86400));
+  // Ground track longitude progression
+  const netLonRateDegPerSec = (360 / (ISS_PERIOD_MINUTES * 60)) - (360 / 86400);
   const lonShift = netLonRateDegPerSec * elapsedSeconds;
   const newLon = ((lastLon + lonShift + 180) % 360) - 180;
 
-  // Latitudinal sinusoidal oscillation based on inclination
-  const inclinationRad = (ISS_INCLINATION_DEG * Math.PI) / 180;
-  const currentPhase = Math.asin(Math.min(0.999, Math.max(-0.999, lastLat / ISS_INCLINATION_DEG)));
+  // Proper ascending vs descending phase
+  const isDescending = headingDeg > 90 && headingDeg < 270;
+  const clampedLatRatio = Math.max(-0.999, Math.min(0.999, lastLat / ISS_INCLINATION_DEG));
+  let basePhase = Math.asin(clampedLatRatio);
+  if (isDescending) {
+    basePhase = Math.PI - basePhase;
+  }
+
   const deltaPhase = (degTravelled * Math.PI) / 180;
-  const newLat = (inclinationRad * 180 / Math.PI) * Math.sin(currentPhase + deltaPhase);
+  const newPhase = basePhase + deltaPhase;
+  const newLat = ISS_INCLINATION_DEG * Math.sin(newPhase);
 
   return {
     lat: Math.max(-ISS_INCLINATION_DEG, Math.min(ISS_INCLINATION_DEG, newLat)),
@@ -100,21 +108,29 @@ export function extrapolateISSPosition(
 
 /**
  * Generates an array of 3D points forming the ISS orbital trajectory loop in Three.js space
+ * Heading-aware to match actual ascending/descending flight direction
  */
 export function generateOrbitTrail(
   currentLat: number,
   currentLon: number,
+  headingDeg: number = 51.6,
   orbitRadius3D: number = 10.66,
   pointCount: number = 240
 ): OrbitPoint[] {
   const points: OrbitPoint[] = [];
-  const currentPhase = Math.asin(Math.max(-0.999, Math.min(0.999, currentLat / ISS_INCLINATION_DEG)));
+
+  const isDescending = headingDeg > 90 && headingDeg < 270;
+  const clampedLatRatio = Math.max(-0.999, Math.min(0.999, currentLat / ISS_INCLINATION_DEG));
+  let basePhase = Math.asin(clampedLatRatio);
+  if (isDescending) {
+    basePhase = Math.PI - basePhase;
+  }
 
   for (let i = 0; i <= pointCount; i++) {
     const progress = i / pointCount;
     // Cover past 45m and future 90m (1.5 orbits)
     const angleOffset = (progress - 0.33) * 2 * Math.PI * 1.5;
-    const phase = currentPhase + angleOffset;
+    const phase = basePhase + angleOffset;
 
     const lat = ISS_INCLINATION_DEG * Math.sin(phase);
     const earthRotationOffset = (angleOffset / (2 * Math.PI)) * 23.17;
@@ -147,7 +163,6 @@ export function calculateGroundTrack(
 ): Array<{ lat: number; lon: number; minutesOffset: number }> {
   const track: Array<{ lat: number; lon: number; minutesOffset: number }> = [];
 
-  // Determine initial phase from current latitude and heading
   const isDescending = headingDeg > 90 && headingDeg < 270;
   const clampedLatRatio = Math.max(-0.999, Math.min(0.999, currentLat / ISS_INCLINATION_DEG));
   let basePhase = Math.asin(clampedLatRatio);
@@ -155,8 +170,8 @@ export function calculateGroundTrack(
     basePhase = Math.PI - basePhase;
   }
 
-  const omegaOrbital = (2 * Math.PI) / ISS_PERIOD_MINUTES; // rad per minute
-  const degLonPerMinute = (360 / ISS_PERIOD_MINUTES) - (360 / 1440); // deg per minute (~3.634 deg/min)
+  const omegaOrbital = (2 * Math.PI) / ISS_PERIOD_MINUTES;
+  const degLonPerMinute = (360 / ISS_PERIOD_MINUTES) - (360 / 1440);
 
   for (let t = startMinutes; t <= endMinutes; t += stepMinutes) {
     const phase = basePhase + omegaOrbital * t;

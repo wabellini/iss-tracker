@@ -187,11 +187,12 @@ export const SpaceScene: React.FC<SpaceSceneProps> = ({
     // Initial position
     const initialLat = telemetryRef.current?.latitude ?? 6.724;
     const initialLon = telemetryRef.current?.longitude ?? -140.032;
+    const initialHeading = telemetryRef.current?.headingDeg ?? 51.6;
     const issVec = latLonToVector3(initialLat, initialLon, issOrbitRadius);
     const surfaceVec = latLonToVector3(initialLat, initialLon, earthRadius);
     issObjects.updatePosition(issVec, surfaceVec);
 
-    const orbitPoints = generateOrbitTrail(initialLat, initialLon, issOrbitRadius, 240);
+    const orbitPoints = generateOrbitTrail(initialLat, initialLon, initialHeading, issOrbitRadius, 240);
     issObjects.updateOrbitTrail(orbitPoints.map((p) => new THREE.Vector3(p.x, p.y, p.z)));
 
     // 12. Resize handler
@@ -230,6 +231,18 @@ export const SpaceScene: React.FC<SpaceSceneProps> = ({
       if (issObjects.nadirBeam) {
         issObjects.nadirBeam.visible = currentLayers.laserNadir;
       }
+      if (issObjects.footprintRing) {
+        issObjects.footprintRing.visible = currentLayers.laserNadir;
+      }
+      if (issObjects.pulseRing) {
+        issObjects.pulseRing.visible = currentLayers.laserNadir;
+      }
+      if (earthMaterial.uniforms.uShowCityLights) {
+        earthMaterial.uniforms.uShowCityLights.value = currentLayers.cityLights ? 1.0 : 0.0;
+      }
+      if (earthMaterial.uniforms.uShowTerminator) {
+        earthMaterial.uniforms.uShowTerminator.value = currentLayers.terminator ? 1.0 : 0.0;
+      }
 
       // Pulse beacon ring animation
       if (issObjects.pulseRing) {
@@ -239,7 +252,7 @@ export const SpaceScene: React.FC<SpaceSceneProps> = ({
           0.45 * (1.35 - (pulseScale - 1.0));
       }
 
-      // Smooth dead-reckoning extrapolation
+      // Smooth dead-reckoning extrapolation (Heading-aware)
       const currentTelemetry = telemetryRef.current;
       if (currentTelemetry) {
         const elapsedSinceUpdate = (Date.now() - currentTelemetry.timestamp) / 1000;
@@ -247,7 +260,8 @@ export const SpaceScene: React.FC<SpaceSceneProps> = ({
           currentTelemetry.latitude,
           currentTelemetry.longitude,
           elapsedSinceUpdate,
-          currentTelemetry.velocityKmH
+          currentTelemetry.velocityKmH,
+          currentTelemetry.headingDeg
         );
 
         const issPos = latLonToVector3(extrapolated.lat, extrapolated.lon, issOrbitRadius);
@@ -320,10 +334,16 @@ export const SpaceScene: React.FC<SpaceSceneProps> = ({
   // Update orbit line when telemetry changes
   useEffect(() => {
     if (telemetry && issObjectsRef.current) {
-      const orbitPoints = generateOrbitTrail(telemetry.latitude, telemetry.longitude, 10.66, 240);
+      const orbitPoints = generateOrbitTrail(
+        telemetry.latitude,
+        telemetry.longitude,
+        telemetry.headingDeg,
+        10.66,
+        240
+      );
       issObjectsRef.current.updateOrbitTrail(orbitPoints.map((p) => new THREE.Vector3(p.x, p.y, p.z)));
     }
-  }, [telemetry?.latitude, telemetry?.longitude]);
+  }, [telemetry?.latitude, telemetry?.longitude, telemetry?.headingDeg]);
 
   return <div className="space-container" ref={containerRef} />;
 };

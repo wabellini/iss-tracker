@@ -74,7 +74,7 @@ export const App: React.FC = () => {
       </div>
 
       {/* Top Right 2D Mission Control Minimap */}
-      <MiniMap2D telemetry={telemetry} userCoords={userCoords} lang={lang} />
+      <MiniMap2D telemetry={telemetry} userCoords={userCoords} layers={layers} lang={lang} />
 
       {/* Bottom Center Camera & Layers Toolbar */}
       <CameraToolbar
