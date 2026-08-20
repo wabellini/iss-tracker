@@ -551,10 +551,17 @@ export const MiniMap2D: React.FC<MiniMap2DProps> = ({
                   color: '#94a3b8',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#4ade80' }} />
-                  <span>{lang === 'es' ? 'Tu ubicación' : 'Your location'}</span>
-                </div>
+                {userCoords ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#4ade80' }} />
+                    <span>{lang === 'es' ? 'Tu ubicación' : 'Your location'}</span>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#64748b' }} />
+                    <span>{lang === 'es' ? 'GPS desactivado' : 'GPS disabled'}</span>
+                  </div>
+                )}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#facc15' }} />
                   <span>{lang === 'es' ? 'Sol' : 'Sun'}</span>

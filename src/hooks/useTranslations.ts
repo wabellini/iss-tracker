@@ -27,7 +27,7 @@ export const translations = {
     
     // Telemetry Card 4
     distanceToYou: 'Distancia a ti',
-    locatingUser: 'Calculando...',
+    locatingUser: 'Sin GPS',
     
     // Minimap
     minimapTitle: 'MINIMAPA 2D',
@@ -112,7 +112,7 @@ export const translations = {
     
     // Telemetry Card 4
     distanceToYou: 'Distance to you',
-    locatingUser: 'Calculating...',
+    locatingUser: 'No GPS',
     
     // Minimap
     minimapTitle: '2D MINIMAP',
