@@ -114,6 +114,14 @@ export const CrewModal: React.FC<CrewModalProps> = ({
             gap: '12px',
           }}
         >
+          {crew.length === 0 && (
+            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px 20px', color: '#94a3b8', fontSize: '13px' }}>
+              <div style={{ color: '#00e5ff', marginBottom: '6px', fontWeight: 600 }}>
+                {lang === 'es' ? 'Sincronizando tripulación en órbita...' : 'Syncing astronauts in orbit...'}
+              </div>
+            </div>
+          )}
+
           {crew.map((astro, idx) => (
             <div
               key={idx}
@@ -128,22 +136,50 @@ export const CrewModal: React.FC<CrewModalProps> = ({
                 backgroundColor: 'rgba(10, 24, 48, 0.5)',
               }}
             >
-              {/* Flag / Avatar Badge */}
+              {/* Astronaut Portrait with Flag Badge */}
               <div
                 style={{
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: '10px',
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '12px',
                   backgroundColor: 'rgba(15, 34, 68, 0.8)',
-                  border: '1px solid rgba(56, 189, 248, 0.2)',
+                  border: '1px solid rgba(56, 189, 248, 0.3)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '20px',
+                  position: 'relative',
                   flexShrink: 0,
+                  overflow: 'hidden',
                 }}
               >
-                {astro.flag}
+                {astro.imageUrl ? (
+                  <img
+                    src={astro.imageUrl}
+                    alt={astro.name}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                    }}
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <span style={{ fontSize: '22px' }}>{astro.flag}</span>
+                )}
+                {/* Flag Badge */}
+                <span
+                  style={{
+                    position: 'absolute',
+                    bottom: '1px',
+                    right: '2px',
+                    fontSize: '12px',
+                    filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.9))',
+                  }}
+                >
+                  {astro.flag}
+                </span>
               </div>
 
               {/* Info */}

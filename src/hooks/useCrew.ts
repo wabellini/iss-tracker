@@ -1,137 +1,111 @@
 import { useState, useEffect } from 'react';
 import type { Astronaut } from '../types';
 
-const INITIAL_CREW: Astronaut[] = [
-  {
-    name: 'Sunita Williams',
-    craft: 'ISS / Crew Dragon',
-    agency: 'NASA',
-    role: 'Comandante de la ISS',
-    country: 'Estados Unidos',
-    flag: '🇺🇸',
-    daysInSpace: 322,
-  },
-  {
-    name: 'Barry "Butch" Wilmore',
-    craft: 'ISS / Crew Dragon',
-    agency: 'NASA',
-    role: 'Ingeniero de Vuelo',
-    country: 'Estados Unidos',
-    flag: '🇺🇸',
-    daysInSpace: 278,
-  },
-  {
-    name: 'Don Pettit',
-    craft: 'Soyuz MS-26',
-    agency: 'NASA',
-    role: 'Ingeniero de Vuelo',
-    country: 'Estados Unidos',
-    flag: '🇺🇸',
-    daysInSpace: 460,
-  },
-  {
-    name: 'Aleksey Ovchinin',
-    craft: 'Soyuz MS-26',
-    agency: 'Roscosmos',
-    role: 'Comandante Soyuz',
-    country: 'Rusia',
-    flag: '🇷🇺',
-    daysInSpace: 375,
-  },
-  {
-    name: 'Ivan Vagner',
-    craft: 'Soyuz MS-26',
-    agency: 'Roscosmos',
-    role: 'Ingeniero de Vuelo',
-    country: 'Rusia',
-    flag: '🇷🇺',
-    daysInSpace: 196,
-  },
-  {
-    name: 'Nick Hague',
-    craft: 'SpaceX Crew-9',
-    agency: 'NASA',
-    role: 'Comandante Crew-9',
-    country: 'Estados Unidos',
-    flag: '🇺🇸',
-    daysInSpace: 203,
-  },
-  {
-    name: 'Aleksandr Gorbunov',
-    craft: 'SpaceX Crew-9',
-    agency: 'Roscosmos',
-    role: 'Especialista de Misión',
-    country: 'Rusia',
-    flag: '🇷🇺',
-    daysInSpace: 142,
-  },
-  {
-    name: 'Oleg Kononenko',
-    craft: 'Soyuz MS-25',
-    agency: 'Roscosmos',
-    role: 'Comandante de Expedición',
-    country: 'Rusia',
-    flag: '🇷🇺',
-    daysInSpace: 1111,
-  },
-  {
-    name: 'Nikolai Chub',
-    craft: 'Soyuz MS-25',
-    agency: 'Roscosmos',
-    role: 'Ingeniero de Vuelo',
-    country: 'Rusia',
-    flag: '🇷🇺',
-    daysInSpace: 374,
-  },
-  {
-    name: 'Tracy C. Dyson',
-    craft: 'Soyuz MS-25',
-    agency: 'NASA',
-    role: 'Ingeniero de Vuelo',
-    country: 'Estados Unidos',
-    flag: '🇺🇸',
-    daysInSpace: 372,
-  },
-];
+function parseDaysInSpace(timeStr?: string | null): number {
+  if (!timeStr) return 0;
+  const match = timeStr.match(/P(?:(\d+)D)?/);
+  return match && match[1] ? parseInt(match[1], 10) : 0;
+}
+
+function getNationalityFlag(nationality?: string | null, countryCode?: string | null): string {
+  const n = (nationality || '').toLowerCase();
+  const c = (countryCode || '').toUpperCase();
+  if (c === 'USA' || n.includes('american') || n.includes('united states')) return '🇺🇸';
+  if (c === 'RUS' || n.includes('russian') || n.includes('russia')) return '🇷🇺';
+  if (c === 'FRA' || n.includes('french') || n.includes('france')) return '🇫🇷';
+  if (c === 'DEU' || n.includes('german') || n.includes('germany')) return '🇩🇪';
+  if (c === 'ITA' || n.includes('italian') || n.includes('italy')) return '🇮🇹';
+  if (c === 'JPN' || n.includes('japanese') || n.includes('japan')) return '🇯🇵';
+  if (c === 'CAN' || n.includes('canadian') || n.includes('canada')) return '🇨🇦';
+  if (c === 'CHN' || n.includes('chinese') || n.includes('china')) return '🇨🇳';
+  if (c === 'GBR' || n.includes('british') || n.includes('uk')) return '🇬🇧';
+  return '🌐';
+}
 
 export function useCrew() {
-  const [crew, setCrew] = useState<Astronaut[]>(INITIAL_CREW);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [crew, setCrew] = useState<Astronaut[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    // Attempt fetching live crew from OpenNotify API with fallback
-    const fetchLiveCrew = async () => {
+    let isMounted = true;
+
+    const fetchLiveAstronauts = async () => {
       try {
         setLoading(true);
-        const res = await fetch('https://api.open-notify.org/astros.json');
-        if (res.ok) {
-          const data = await res.json();
-          const issPeople = data.people.filter((p: { craft: string; name: string }) => p.craft === 'ISS');
-          if (issPeople.length > 0) {
-            // Update names and retain rich metadata
-            const enrichedCrew = issPeople.map((p: { name: string; craft: string }, idx: number) => {
-              const matched = INITIAL_CREW.find((c) => c.name.toLowerCase().includes(p.name.toLowerCase()));
-              return matched || {
-                name: p.name,
-                craft: p.craft,
-                agency: 'ISS Partner Agency',
-                role: idx === 0 ? 'Comandante' : 'Ingeniero de Vuelo',
-                country: 'Internacional',
-                flag: '🌐',
-                daysInSpace: 150 + idx * 30,
-              };
-            });
-            setCrew(enrichedCrew);
+        // Check session cache for ISS crew
+        const cached = sessionStorage.getItem('iss_live_crew_only_cache');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0 && isMounted) {
+            setCrew(parsed);
+            setLoading(false);
           }
         }
-      } catch {
-        // Fallback to rich predefined roster
+
+        // Live API query for humans currently in space
+        const res = await fetch(
+          'https://ll.thespacedevs.com/2.2.0/astronaut/?in_space=true&limit=30',
+          { signal: AbortSignal.timeout(6000) }
+        );
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const data = await res.json();
+        if (data && Array.isArray(data.results) && isMounted) {
+          // Filter ONLY humans aboard the International Space Station (ISS)
+          const issCrewMembers = data.results.filter((a: any) => {
+            const agencyAbbrev = (a.agency?.abbrev || '').toUpperCase();
+            const agencyName = (a.agency?.name || '').toLowerCase();
+            const name = (a.name || '').toLowerCase();
+
+            // Exclude inanimate objects / test dummies
+            if (a.type?.name === 'Non-Human' || name.includes('starman') || name.includes('dummy')) {
+              return false;
+            }
+
+            // Exclude Chinese Space Station (Tiangong / CNSA)
+            if (agencyAbbrev === 'CNSA' || agencyName.includes('china')) {
+              return false;
+            }
+
+            return true;
+          });
+
+          const liveAstronauts: Astronaut[] = issCrewMembers.map((a: any, idx: number) => {
+            const agencyAbbrev = a.agency?.abbrev || a.agency?.name || 'NASA';
+            const flag = getNationalityFlag(a.nationality, a.agency?.country_code);
+            const days = parseDaysInSpace(a.time_in_space);
+            const imageUrl = a.profile_image_thumbnail || a.profile_image || undefined;
+
+            return {
+              name: a.name,
+              craft: 'ISS',
+              agency: agencyAbbrev,
+              role: idx === 0 ? 'Comandante de Misión' : 'Especialista / Ingeniero de Vuelo',
+              country: a.nationality || a.agency?.country_code || 'Internacional',
+              flag,
+              daysInSpace: days,
+              imageUrl,
+            };
+          });
+
+          if (liveAstronauts.length > 0) {
+            setCrew(liveAstronauts);
+            sessionStorage.setItem('iss_live_crew_only_cache', JSON.stringify(liveAstronauts));
+          }
+        }
+      } catch (err) {
+        console.warn('Live ISS astronaut API fallback:', err);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
-    fetchLiveCrew();
+    fetchLiveAstronauts();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   return { crew, count: crew.length, loading };

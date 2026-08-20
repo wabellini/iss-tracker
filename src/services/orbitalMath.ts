@@ -249,3 +249,48 @@ export function isPositionSunlit(lat: number, lon: number, date: Date = new Date
   const dot = p1.dot(pSun);
   return dot > -0.12;
 }
+
+/**
+ * Calculates the remaining minutes until the next solar event (orbital sunrise or sunset)
+ * by projecting the ISS forward along its true ground track.
+ */
+export function calculateNextSunEvent(
+  currentLat: number,
+  currentLon: number,
+  headingDeg: number,
+  isCurrentlySunlit: boolean,
+  date: Date = new Date()
+): { eventName: 'sunset' | 'sunrise'; countdownMinutes: number } {
+  const isDescending = headingDeg > 90 && headingDeg < 270;
+  const clampedLatRatio = Math.max(-0.999, Math.min(0.999, currentLat / ISS_INCLINATION_DEG));
+  let basePhase = Math.asin(clampedLatRatio);
+  if (isDescending) {
+    basePhase = Math.PI - basePhase;
+  }
+
+  const omegaOrbital = (2 * Math.PI) / ISS_PERIOD_MINUTES;
+  const degLonPerMinute = 360 / ISS_PERIOD_MINUTES - 360 / 1440;
+
+  // Step forward up to 1 orbit (95 min) in increments of 0.25 min (15s precision)
+  for (let t = 0.25; t <= ISS_PERIOD_MINUTES; t += 0.25) {
+    const phase = basePhase + omegaOrbital * t;
+    const futureLat = ISS_INCLINATION_DEG * Math.sin(phase);
+    const futureLon = ((((currentLon + degLonPerMinute * t + 180) % 360) + 360) % 360) - 180;
+    const futureDate = new Date(date.getTime() + t * 60 * 1000);
+
+    const futureSunlit = isPositionSunlit(futureLat, futureLon, futureDate);
+
+    if (futureSunlit !== isCurrentlySunlit) {
+      const roundedMinutes = Math.max(1, Math.round(t));
+      return {
+        eventName: isCurrentlySunlit ? 'sunset' : 'sunrise',
+        countdownMinutes: roundedMinutes,
+      };
+    }
+  }
+
+  return {
+    eventName: isCurrentlySunlit ? 'sunset' : 'sunrise',
+    countdownMinutes: 45,
+  };
+}

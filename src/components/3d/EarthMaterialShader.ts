@@ -48,43 +48,48 @@ export function createPhotometricEarthMaterial(
 
       void main() {
         // Sample textures
-        vec3 dayColor = texture2D(uDayTexture, vUv).rgb;
+        vec3 rawDay = texture2D(uDayTexture, vUv).rgb;
         vec3 nightLights = texture2D(uNightTexture, vUv).rgb;
         float specularMask = texture2D(uSpecularTexture, vUv).r;
 
-        // Normal and Sun illumination angle
+        // Normal and Sun illumination vector
         vec3 normal = normalize(vWorldNormal);
         vec3 sunDir = normalize(uSunDirection);
         float sunDot = dot(normal, sunDir);
 
         // Day factor with smooth physical twilight gradient
-        float dayFactor = smoothstep(-0.14, 0.18, sunDot);
+        float dayFactor = smoothstep(-0.12, 0.18, sunDot);
 
-        // 1. DAYTIME VIBRANT LIGHTING
+        // 1. RADIANT & VIBRANT DAYTIME LIGHTING
+        // Specular Sun reflection glint on water
         vec3 viewDir = normalize(vViewPosition);
         vec3 halfDir = normalize(sunDir + viewDir);
         float specAngle = max(dot(normalize(vNormal), halfDir), 0.0);
-        float specular = pow(specAngle, 36.0) * specularMask * 2.2 * dayFactor;
-        vec3 sunSpecularColor = vec3(1.0, 0.98, 0.92) * specular;
+        float specular = pow(specAngle, 32.0) * specularMask * 2.5 * dayFactor;
+        vec3 sunSpecularColor = vec3(1.0, 0.98, 0.94) * specular;
 
-        float sunIntensity = max(sunDot, 0.0) * 1.35 + 0.32;
-        vec3 litDay = dayColor * sunIntensity + sunSpecularColor;
+        // Enhance daytime vibrancy, rich blue oceans, and lush continents
+        vec3 vibrantDay = pow(rawDay, vec3(0.92)) * 1.65;
+        float sunDirect = max(sunDot, 0.0);
+        float sunIntensity = pow(sunDirect, 0.72) * 1.45 + 0.42;
+        vec3 litDay = vibrantDay * sunIntensity + sunSpecularColor;
 
-        // 2. SUBTLE TWILIGHT SUNSET/SUNRISE TRANSITION LINE (TERMINATOR)
+        // 2. GOLDEN-AMBER TWILIGHT SUNSET/SUNRISE TRANSITION LINE (TERMINATOR)
         float twilightBand = smoothstep(-0.16, 0.02, sunDot) * smoothstep(0.20, 0.02, sunDot);
-        vec3 twilightGlow = vec3(1.0, 0.54, 0.18) * twilightBand * 0.48 * uShowTerminator;
+        vec3 twilightGlow = vec3(1.0, 0.52, 0.16) * twilightBand * 0.55 * uShowTerminator;
 
-        // 3. NIGHTTIME WITH DISTINCT CONTINENTS & CITY LIGHTS
-        vec3 nightLandAmbient = dayColor * vec3(0.18, 0.22, 0.32) * 1.6;
-        vec3 nightOceanAmbient = vec3(0.02, 0.038, 0.07);
+        // 3. DEEP NIGHTTIME WITH SPARKLING CITY LIGHTS
+        // Subtle ambient starlight on dark landmasses for silhouette recognition
+        vec3 nightLandAmbient = rawDay * vec3(0.06, 0.09, 0.14) * 1.2;
+        vec3 nightOceanAmbient = vec3(0.015, 0.025, 0.05);
         vec3 nightTerrain = mix(nightLandAmbient, nightOceanAmbient, specularMask);
 
-        // Vibrant golden city lights on landmasses (controlled by uShowCityLights)
-        vec3 nightCities = nightLights * vec3(1.3, 1.15, 0.9) * 3.0 * uShowCityLights;
+        // Vibrant golden city lights
+        vec3 nightCities = nightLights * vec3(1.4, 1.2, 0.85) * 3.4 * uShowCityLights;
 
         vec3 litNight = nightTerrain + nightCities;
 
-        // 4. FINAL COLOR COMPOSITION
+        // 4. FINAL COMPOSITION
         vec3 finalSurface = mix(litNight, litDay, dayFactor) + twilightGlow;
 
         gl_FragColor = vec4(finalSurface, 1.0);

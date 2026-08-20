@@ -61,6 +61,7 @@ export interface Astronaut {
   country: string;
   flag: string;
   daysInSpace: number;
+  imageUrl?: string;
 }
 
 export interface PassAlert {

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { TelemetryData, ISSRawData, UserCoordinates } from '../types';
 import { fetchISSPosition } from '../services/issApi';
-import { calculateDistanceKm, isPositionSunlit } from '../services/orbitalMath';
+import { calculateDistanceKm, isPositionSunlit, calculateNextSunEvent } from '../services/orbitalMath';
 import { getOfflineLocationName } from '../services/reverseGeo';
 
 export function useISSTelemetry(userCoords: UserCoordinates | null, lang: 'es' | 'en' = 'es') {
@@ -53,12 +53,11 @@ export function useISSTelemetry(userCoords: UserCoordinates | null, lang: 'es' |
         const altitudeKm = Number(raw.altitude.toFixed(1));
         const altitudeMi = Number((raw.altitude * 0.621371).toFixed(1));
 
-        // Sunlit status
+        // Sunlit status and dynamic countdown to next sunrise / sunset
         const isSunlit = isPositionSunlit(raw.latitude, raw.longitude);
-        const sunEventName = isSunlit ? 'sunset' : 'sunrise';
-        
-        // Approximate countdown to orbital eclipse/sunrise (orbit is ~92.68 min)
-        const sunEventCountdownMinutes = isSunlit ? 24 : 21;
+        const sunEvent = calculateNextSunEvent(raw.latitude, raw.longitude, heading, isSunlit);
+        const sunEventName = sunEvent.eventName;
+        const sunEventCountdownMinutes = sunEvent.countdownMinutes;
 
         // Geocoding location name
         const locationName = getOfflineLocationName(raw.latitude, raw.longitude, lang);

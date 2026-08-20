@@ -68,7 +68,7 @@ export const SpaceScene: React.FC<SpaceSceneProps> = ({
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.35;
+    renderer.toneMappingExposure = 1.45;
     container.appendChild(renderer.domElement);
 
     // 4. Orbit Controls
@@ -84,7 +84,7 @@ export const SpaceScene: React.FC<SpaceSceneProps> = ({
     const sunCoords = calculateSunPosition(new Date());
     const sunPosVec = latLonToVector3(sunCoords.lat, sunCoords.lon, 60);
 
-    const sunLight = new THREE.DirectionalLight(0xffffff, 3.6);
+    const sunLight = new THREE.DirectionalLight(0xffffff, 3.8);
     sunLight.position.copy(sunPosVec);
     scene.add(sunLight);
 
