@@ -309,7 +309,10 @@ export const SpaceScene: React.FC<SpaceSceneProps> = ({
         controls.target.lerp(lookAtTarget, 0.04);
         camera.lookAt(controls.target);
       } else {
-        // Free OrbitControls
+        // Free OrbitControls: Restore pivot target to Earth center (0, 0, 0)
+        if (controls.target.lengthSq() > 0.0001) {
+          controls.target.lerp(new THREE.Vector3(0, 0, 0), 0.08);
+        }
         controls.enabled = true;
         controls.update();
       }

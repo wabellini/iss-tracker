@@ -152,11 +152,11 @@ export const MiniMap2D: React.FC<MiniMap2DProps> = ({
       }
       ctx.restore();
 
-      // Distinct Glowing Terminator Line (Dividing boundary)
+      // Distinct Glowing Amber-Orange Twilight Line (Dividing boundary matching 3D Earth twilight band)
       ctx.save();
-      ctx.strokeStyle = '#38bdf8';
+      ctx.strokeStyle = '#f97316';
       ctx.lineWidth = isMaximized ? 2.0 : 1.6;
-      ctx.shadowColor = '#00e5ff';
+      ctx.shadowColor = 'rgba(249, 115, 22, 0.8)';
       ctx.shadowBlur = 6;
       ctx.beginPath();
       terminatorPoints.forEach(([lat, lon], idx) => {
@@ -235,7 +235,7 @@ export const MiniMap2D: React.FC<MiniMap2DProps> = ({
     // 4. ORBITAL TRACKS
     const showOrbit = layers ? layers.orbit : true;
     if (showOrbit) {
-      // Previous Orbit (-90 min): Orange dashed line
+      // Previous Orbit (-90 min): Subtle dashed line
       const prevOrbitTrack = calculateGroundTrack(
         telemetry.latitude,
         telemetry.longitude,
@@ -243,9 +243,9 @@ export const MiniMap2D: React.FC<MiniMap2DProps> = ({
         -135,
         -45
       );
-      drawTrack(prevOrbitTrack, 'rgba(249, 115, 22, 0.75)', isMaximized ? 1.6 : 1.3, true);
+      drawTrack(prevOrbitTrack, 'rgba(148, 163, 184, 0.55)', isMaximized ? 1.4 : 1.1, true);
 
-      // Next Future Orbit (+90 min): Yellow/Orange dashed line
+      // Next Future Orbit (+90 min): Cyan dashed line (matching cyan flight track)
       const nextOrbitTrack = calculateGroundTrack(
         telemetry.latitude,
         telemetry.longitude,
@@ -253,7 +253,7 @@ export const MiniMap2D: React.FC<MiniMap2DProps> = ({
         90,
         180
       );
-      drawTrack(nextOrbitTrack, 'rgba(250, 204, 21, 0.75)', isMaximized ? 1.6 : 1.3, true);
+      drawTrack(nextOrbitTrack, 'rgba(0, 229, 255, 0.75)', isMaximized ? 1.6 : 1.3, true, true);
 
       // Current Pass Track (-45m past and +90m upcoming): Glowing Solid Cyan Line
       const currentTrack = calculateGroundTrack(

@@ -149,25 +149,29 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
           pointerEvents: 'auto',
         }}
       >
-        {/* Mission Guide Button */}
+        {/* Mission Guide Button (Destacado) */}
         <button
           onClick={onOpenGuide}
           className="glass-panel glass-panel-interactive"
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
-            padding: '7px 14px',
+            gap: '7px',
+            padding: '7px 16px',
             borderRadius: '9999px',
+            background: 'linear-gradient(135deg, rgba(0, 229, 255, 0.22) 0%, rgba(14, 165, 233, 0.12) 100%)',
+            border: '1px solid rgba(0, 229, 255, 0.55)',
+            boxShadow: '0 0 16px rgba(0, 229, 255, 0.28)',
             color: '#f8fafc',
             fontSize: '12px',
-            fontWeight: 500,
+            fontWeight: 600,
             cursor: 'pointer',
-            border: '1px solid rgba(56, 189, 248, 0.25)',
+            letterSpacing: '0.02em',
+            transition: 'all 0.2s ease',
           }}
         >
-          <HelpCircle size={13} color="#38bdf8" />
-          <span>{t.missionGuide}</span>
+          <HelpCircle size={14} color="#00e5ff" />
+          <span style={{ color: '#e0f2fe' }}>{t.missionGuide}</span>
         </button>
 
         {/* Next Passes Button */}

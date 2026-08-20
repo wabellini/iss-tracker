@@ -230,21 +230,42 @@ export const MissionGuideModal: React.FC<MissionGuideModalProps> = ({
               <div
                 style={{
                   backgroundColor: 'rgba(8, 20, 42, 0.6)',
+                  border: '1px solid rgba(0, 229, 255, 0.25)',
+                  borderRadius: '10px',
+                  padding: '14px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                  <span style={{ width: '12px', height: '2px', borderTop: '2px dashed #00e5ff' }} />
+                  <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#00e5ff', margin: 0 }}>
+                    {lang === 'es' ? 'Línea Cian Discontinua (Próxima Órbita Futura)' : 'Cyan Dashed Line (Next Future Orbit)'}
+                  </h3>
+                </div>
+                <p style={{ fontSize: '12px', color: '#cbd5e1', lineHeight: '1.6', margin: 0 }}>
+                  {lang === 'es'
+                    ? 'Muestra la trayectoria que recorrerá la ISS en su siguiente vuelta (+90 a +180 min). Debido a la rotación de la Tierra hacia el este, cada nueva órbita sobre el suelo se desplaza unos 23° de longitud hacia el oeste.'
+                    : 'Shows the path the ISS will take on its next revolution (+90 to +180 min). Because the Earth rotates eastward, each new ground track shifts ~23° west.'}
+                </p>
+              </div>
+
+              <div
+                style={{
+                  backgroundColor: 'rgba(8, 20, 42, 0.6)',
                   border: '1px solid rgba(249, 115, 22, 0.25)',
                   borderRadius: '10px',
                   padding: '14px',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                  <span style={{ width: '10px', height: '2px', borderTop: '2px dashed #f97316' }} />
+                  <span style={{ width: '12px', height: '3px', backgroundColor: '#f97316', borderRadius: '2px' }} />
                   <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#f97316', margin: 0 }}>
-                    {lang === 'es' ? 'Líneas Naranjas Discontinuas (Órbitas Adyacentes)' : 'Orange Dashed Lines (Adjacent Orbits)'}
+                    {lang === 'es' ? 'Línea Anaranjada Crepuscular (Terminador Solar)' : 'Orange Twilight Line (Solar Terminator)'}
                   </h3>
                 </div>
                 <p style={{ fontSize: '12px', color: '#cbd5e1', lineHeight: '1.6', margin: 0 }}>
                   {lang === 'es'
-                    ? 'Muestran por dónde pasó la ISS en su vuelta anterior (-90 min) y por dónde pasará en su siguiente vuelta (+90 min). Debido a que la Tierra rota hacia el este, cada nueva órbita sobre el suelo se desplaza unos 23° de longitud hacia el oeste.'
-                    : 'Show where the ISS passed during its previous orbit (-90 min) and where it will pass on its next revolution (+90 min). Because the Earth rotates eastward, each new ground track shifts ~23° west.'}
+                    ? 'Delimita la frontera viva entre el día y la noche terrestre (zonas de amanecer y atardecer), reflejando la misma franja crepuscular ámbar/dorada visible en el globo 3D.'
+                    : 'Marks the active boundary between day and night on Earth (sunrise and sunset zones), mirroring the same golden-amber twilight glow seen on the 3D globe.'}
                 </p>
               </div>
 
@@ -298,21 +319,21 @@ export const MissionGuideModal: React.FC<MissionGuideModalProps> = ({
               <div
                 style={{
                   backgroundColor: 'rgba(8, 20, 42, 0.6)',
-                  border: '1px solid rgba(56, 189, 248, 0.2)',
+                  border: '1px solid rgba(249, 115, 22, 0.25)',
                   borderRadius: '10px',
                   padding: '14px',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                  <Sparkles size={15} color="#38bdf8" />
-                  <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#38bdf8', margin: 0 }}>
-                    {lang === 'es' ? 'Terminador Solar y 16 Amaneceres Diarios' : 'Solar Terminator & 16 Daily Sunrises'}
+                  <Sparkles size={15} color="#f97316" />
+                  <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#f97316', margin: 0 }}>
+                    {lang === 'es' ? 'Terminador Solar y Franja Crepuscular Anaranjada' : 'Solar Terminator & Orange Twilight Band'}
                   </h3>
                 </div>
                 <p style={{ fontSize: '12px', color: '#cbd5e1', lineHeight: '1.6', margin: 0 }}>
                   {lang === 'es'
-                    ? 'La línea divisoria curvada separa el día de la noche. La ISS completa una vuelta cada 92.7 minutos, por lo que la tripulación experimenta 16 puestas de sol y 16 amaneceres cada 24 horas (unos 45 minutos de luz seguidos de 45 minutos de oscuridad orbital).'
-                    : 'The curved line marks the boundary between day and night. With a 92.7-minute orbital period, astronauts witness 16 sunsets and 16 sunrises every 24 hours (~45 minutes of sunlight followed by ~45 minutes of Earth shadow).' }
+                    ? 'La línea anaranjada curvada separa el día de la noche y marca las zonas crepusculares de amanecer y atardecer. La ISS completa una vuelta cada 92.7 minutos, por lo que los astronautas experimentan 16 puestas de sol y 16 amaneceres cada 24 horas (~45 min de luz y ~45 min de sombra).'
+                    : 'The curved orange line marks the boundary between day and night (twilight sunrise and sunset zones). With a 92.7-minute orbit, astronauts experience 16 sunsets and 16 sunrises every 24 hours (~45 min of sunlight and ~45 min of orbital darkness).' }
                 </p>
               </div>
             </div>
